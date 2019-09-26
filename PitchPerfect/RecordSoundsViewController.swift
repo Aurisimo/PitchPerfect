@@ -11,6 +11,27 @@ import AVFoundation
 
 class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
 
+    // MARK: Alerts
+    
+    struct Alerts {
+        static let DismissAlert = "Dismiss"
+        static let AudioRecorderStoppingFailedTitle = "Stopping Failed"
+        static let AudioRecorderStoppingFailedMessage = "Audio Recorder stopping failed"
+    }
+    
+    // MARK: Audio Recorder Statuses
+    
+    struct AudioRecorderStatuses {
+        static let RecordingInProgress = "Recording in Progress"
+        static let NotRecording = "Tap to Record"
+    }
+    
+    // Mark: Segue Indentifiers
+    
+    struct SegueIdentifiers {
+        static let StopRecording = "stopRecording"
+    }
+    
     @IBOutlet var recordingLabel: UILabel!
     @IBOutlet var recordingButton: UIButton!
     @IBOutlet var stopRecordingButton: UIButton!
@@ -27,10 +48,6 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
         setupUI(isRecording: false)
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-    }
-
     @IBAction func recordAudio(_ sender: Any) {
         setupUI(isRecording: true)
     
@@ -45,20 +62,7 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
         audioRecorder.prepareToRecord()
         audioRecorder.record()
     }
-    
-    func setupUI(isRecording: Bool) {
-        if isRecording {
-            recordingLabel.text = "Recording in Progress"
-            recordingButton.isEnabled = false
-            stopRecordingButton.isEnabled = true
-            return
-        }
-    
-        recordingButton.isEnabled = true
-        stopRecordingButton.isEnabled = false
-        recordingLabel.text = "Tap to Record"
-    }
-    
+
     @IBAction func stopRecording(_ sender: Any) {
         setupUI(isRecording: false)
         audioRecorder.stop()
@@ -67,23 +71,37 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
         print(audioRecorder.url.path)
     }
     
-    func getDocumentDirectoryUrl() -> URL {
-        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-    }
-    
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if flag {
-            performSegue(withIdentifier: "stopRecording", sender: audioRecorder.url)
+            performSegue(withIdentifier: SegueIdentifiers.StopRecording, sender: audioRecorder.url)
         } else {
-            print("Unable to stop recording")
+            showAlert(Alerts.AudioRecorderStoppingFailedTitle, message: Alerts.AudioRecorderStoppingFailedMessage)
         }
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "stopRecording" {
+        if segue.identifier == SegueIdentifiers.StopRecording {
             let playSoundVC = segue.destination as! PlaySoundsViewController
             playSoundVC.recordedAudioURL = sender as? URL
         }
+    }
+    
+    //MARK: Helper Functions
+    
+    func setupUI(isRecording: Bool) {
+        recordingLabel.text = isRecording ? AudioRecorderStatuses.RecordingInProgress : AudioRecorderStatuses.NotRecording
+        recordingButton.isEnabled = !isRecording
+        stopRecordingButton.isEnabled = isRecording
+    }
+    
+    func showAlert(_ title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Alerts.DismissAlert, style: .default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    func getDocumentDirectoryUrl() -> URL {
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
     }
 }
 
